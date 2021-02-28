@@ -13,7 +13,7 @@ p(\mathbf{x}) = \prod\limits_{i=1}^{n}p(x_i \vert x_1, x_2, \ldots, x_{i-1}) = \
 \]
 where $\mathbf{x}_{<i}=[x_1, x_2, \ldots, x_{i-1}]$ denotes the vector of random variables with index less than $i$. If we allow for every conditional $p(x_i \vert \mathbf{x}_{<i})$ to be specified in a tabular form, then such a representation is fully general and can represent any possible distribution over $n$ random variables. However, the space complexity for such a representation grows exponentially with $n$. 
 
-To see why, let us consider the conditional for the last dimension, given by $p(x_n \vert \mathbf{x}_{<n})$. In order to fully specify this conditional, we need to specify a probability for $2^{n-1}$ configurations of the variables $x_1, x_2, \ldots, x_{n-1}$.  Since the probabilities should sum to 1, the total number of parameters for specifying this conditional is given by $2^{n-1} -1$. Hence, a tabular representation for the conditionals is impractical for learning the joint distribution in (\ref{eq:chain_rule}) . 
+To see why, let us consider the conditional for the last dimension, given by $p(x_n \vert \mathbf{x}_{<n})$. In order to fully specify this conditional, we need to specify a probability for $2^{n-1}$ configurations of the variables $x_1, x_2, \ldots, x_{n-1}$.  Since $x_n$ is a binary variable we need to specify one parameter per configuration $x_1, x_2, \ldots, x_{n-1}$ : namely $p(x_n = 1 | x_1, x_2, \ldots, x_{n-1})$. In total, the number of parameters needed to specify this conditional is given by $2^{n-1}$. Hence, a tabular representation for the conditionals is impractical for learning the joint distribution in (\ref{eq:chain_rule}) . 
 
 In an \textit{autoregressive generative model}, the conditionals are specified as parameterized functions with a fixed number of parameters. That is, we assume the conditional distributions $p(x_i \vert \mathbf{x}_{<i})$ to correspond to a Bernoulli random variable and learn a function that maps the preceeding random variables $x_1, x_2, \ldots, x_{i-1}$ to the mean of this distribution. Hence, we have:
 \[
@@ -35,7 +35,7 @@ A natural way to increase the expressiveness of an autoregressive generative mod
 \mathbf{h}_i = \sigma(A_i \mathbf{x_{<i}} + \mathbf{c}_i)\\
 f_i(x_1, x_2, \ldots, x_{i-1}) =\sigma(\boldsymbol{\alpha}^{(i)}\mathbf{h}_i +b_i )  
 \]
-where $\mathbf{h}_i \in \mathbb{R}^d$ denotes the hidden layer activations for the MLP and$\theta_i = \{A_i \in \mathbb{R}^{d\times (i-1)},  \mathbf{c}_i \in \mathbb{R}^d, \boldsymbol{\alpha}^{(i)}\in \mathbb{R}^d, b_i \in \mathbb{R}\}$ are the set of parameters for the mean function $\mu_i(\cdot)$.  The total number of parameters in this model is dominated by the matrices $A_i$ and given by $O(n^2 d)$. 
+where $\mathbf{h}_i \in \mathbb{R}^d$ denotes the hidden layer activations for the MLP and$\theta_i = \{A_i \in \mathbb{R}^{d\times (i-1)},  \mathbf{c}_i \in \mathbb{R}^d, \boldsymbol{\alpha}^{(i)}\in \mathbb{R}^d, b_i \in \mathbb{R}\}$ are the set of parameters for the mean function $f_i(\cdot)$.  The total number of parameters in this model is dominated by the matrices $A_i$ and given by $O(n^2 d)$. 
 
 The Neural Autoregressive Density Estimation (NADE) provides an efficient MLP parameterization that shares parameters used for evaluating the hidden layer activations.
 \[
@@ -56,7 +56,7 @@ with the base case given by $\mathbf{a}_1=\mathbf{c}$.
 
 \section{Learning and inference}
 
-Recall that learning a generative model involves optimizing the closeness between the data and model distributions. One commonly used notion of closeness in the KL divergence between the data and the model distributions.
+Recall that learning a generative model involves optimizing the closeness between the data and model distributions. One commonly used notion of closeness is the KL divergence between the data and the model distributions.
 
 $$
 \begin{align*}

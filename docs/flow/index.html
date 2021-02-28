@@ -32,8 +32,8 @@
 
   </script>
 
-  <link rel="canonical" href="http://localhost:4000/notes/flow/">
-  <link rel="alternate" type="application/rss+xml" title="Deep Generative Models" href="http://localhost:4000/notes/feed.xml" />
+  <link rel="canonical" href="/notes/flow/">
+  <link rel="alternate" type="application/rss+xml" title="Deep Generative Models" href="/notes/feed.xml" />
 </head>
 
   <body>
@@ -77,27 +77,26 @@
 </script>
 
 
-<p>We continue our study over another type of likelihood based generative models. As before, we assume we are given access to a dataset <script type="math/tex">\mathcal{D}</script> of <script type="math/tex">n</script>-dimensional datapoints <script type="math/tex">\mathbf{x}</script>. So far we have learned two types of likelihood based generative models:</p>
+<p>We continue our study over another type of likelihood based generative models. As before, we assume we are given access to a dataset \(\mathcal{D}\) of \(n\)-dimensional datapoints \(\mathbf{x}\). So far we have learned two types of likelihood based generative models:</p>
 
 <ol>
   <li>
-    <p>Autoregressive Models: <script type="math/tex">% <![CDATA[
-p_\theta(\mathbf{x}) = \prod_{i=1}^{N} p_\theta(x_i \vert \mathbf{x}_{<i}) %]]></script></p>
+    <p>Autoregressive Models: \(p_\theta(\mathbf{x}) = \prod_{i=1}^{N} p_\theta(x_i \vert \mathbf{x}_{&lt;i})\)</p>
   </li>
   <li>
-    <p>Variational autoencoders: <script type="math/tex">p_\theta(\mathbf{x}) = \int p_\theta(\mathbf{x}, \mathbf{z}) \text{d}\mathbf{z}</script></p>
+    <p>Variational autoencoders: \(p_\theta(\mathbf{x}) = \int p_\theta(\mathbf{x}, \mathbf{z}) \text{d}\mathbf{z}\)</p>
   </li>
 </ol>
 
 <p>The two methods have relative strengths and weaknesses. Autoregressive models provide tractable likelihoods but no direct mechanism for learning features, whereas variational autoencoders can learn feature representations but have intractable marginal likelihoods.</p>
 
-<p>In this section, we introduce normalizing flows a type of method that combines the best of both worlds, allowing both feature learning and tractable marginal likelihood estimation.</p>
+<p>In this section, we introduce normalizing flows: a type of method that combines the best of both worlds, allowing both feature learning and tractable marginal likelihood estimation.</p>
 
 <h1 id="change-of-variables-formula">Change of Variables Formula</h1>
 
 <p>In normalizing flows, we wish to map simple distributions (easy to sample and evaluate densities) to complex ones (learned via data). The change of variables formula describe how to evaluate densities of a random variable that is a deterministic transformation from another variable.</p>
 
-<p><strong>Change of Variables</strong>: <script type="math/tex">Z</script> and <script type="math/tex">X</script> be random variables which are related by a mapping <script type="math/tex">f: \mathbb{R}^n \to \mathbb{R}^n</script> such that <script type="math/tex">X = f(Z)</script> and <script type="math/tex">Z = f^{-1}(X)</script>. Then</p>
+<p><strong>Change of Variables</strong>: \(Z\) and \(X\) be random variables which are related by a mapping \(f: \mathbb{R}^n \to \mathbb{R}^n\) such that \(X = f(Z)\) and \(Z = f^{-1}(X)\). Then</p>
 
 <div class="mathblock"><script type="math/tex; mode=display">p_X(\mathbb{x}) = p_Z(f^{-1}(\mathbb{x})) \left\vert \text{det}\left(\frac{\partial f^{-1}(\mathbb{x})}{\partial \mathbb{x}}\right) \right\vert
 
@@ -107,16 +106,16 @@ p_\theta(\mathbf{x}) = \prod_{i=1}^{N} p_\theta(x_i \vert \mathbf{x}_{<i}) %]]><
 
 <ol>
   <li>
-    <p><script type="math/tex">\mathbb{x}</script> and <script type="math/tex">\mathbb{z}</script> need to be continuous and have the same dimension.</p>
+    <p>\(\mathbb{x}\) and \(\mathbb{z}\) need to be continuous and have the same dimension.</p>
   </li>
   <li>
-    <p><script type="math/tex">\frac{\partial f^{-1}(\mathbb{x})}{\partial \mathbb{x}}</script> is a matrix of dimension <script type="math/tex">n \times n</script>, where each entry at location <script type="math/tex">(i, j)</script> is defined as <script type="math/tex">\frac{\partial f^{-1}(\mathbb{x})_i}{\partial x_j}</script>. This matrix is also known as the Jacobian matrix.</p>
+    <p>\(\frac{\partial f^{-1}(\mathbb{x})}{\partial \mathbb{x}}\) is a matrix of dimension \(n \times n\), where each entry at location \((i, j)\) is defined as \(\frac{\partial f^{-1}(\mathbb{x})_i}{\partial x_j}\). This matrix is also known as the Jacobian matrix.</p>
   </li>
   <li>
-    <p><script type="math/tex">\text{det}(A)</script> denotes the determinant of a square matrix <script type="math/tex">A</script>.</p>
+    <p>\(\text{det}(A)\) denotes the determinant of a square matrix \(A\).</p>
   </li>
   <li>
-    <p>For any invertible matrix <script type="math/tex">A</script>, <script type="math/tex">\text{det}(A^{-1}) = \text{det}(A)^{-1}</script>, so for <script type="math/tex">\mathbb{z} = f^{-1}(\mathbb{x})</script> we have</p>
+    <p>For any invertible matrix \(A\), \(\text{det}(A^{-1}) = \text{det}(A)^{-1}\), so for \(\mathbb{z} = f^{-1}(\mathbb{x})\) we have</p>
 
     <div class="mathblock"><script type="math/tex; mode=display">
 
@@ -125,17 +124,17 @@ p_X(\mathbb{x}) = p_Z(\mathbb{z}) \left\vert \text{det}\left(\frac{\partial f(\m
 </script></div>
   </li>
   <li>
-    <p>If <script type="math/tex">\left \vert \text{det}\left(\frac{\partial f(\mathbb{z})}{\partial \mathbb{z}}\right) \right\vert = 1</script>, then the mappings is volume preserving, which means that the transformed distribution <script type="math/tex">p_X</script> will have the same “volume” compared to the original one <script type="math/tex">p_Z</script>.</p>
+    <p>If \(\left \vert \text{det}\left(\frac{\partial f(\mathbb{z})}{\partial \mathbb{z}}\right) \right\vert = 1\), then the mappings is volume preserving, which means that the transformed distribution \(p_X\) will have the same “volume” compared to the original one \(p_Z\).</p>
   </li>
 </ol>
 
 <h1 id="normalizing-flow-models">Normalizing Flow Models</h1>
 
-<p>We are ready to introduce normalizing flow models. Let us consider a directed, latent-variable model over observed variables <script type="math/tex">X</script> and latent variables <script type="math/tex">Z</script>. In a <strong>normalizing flow model</strong>, the mapping between <script type="math/tex">Z</script> and <script type="math/tex">X</script>, given by <script type="math/tex">f_\theta: \mathbb{R}^n \to \mathbb{R}^n</script>, is deterministic and invertible such that <script type="math/tex">X = f_\theta(Z)</script> and <script type="math/tex">Z  = f_\theta^{-1}(X)</script><sup id="fnref:nf"><a href="#fn:nf" class="footnote">1</a></sup>.</p>
+<p>We are ready to introduce normalizing flow models. Let us consider a directed, latent-variable model over observed variables \(X\) and latent variables \(Z\). In a <strong>normalizing flow model</strong>, the mapping between \(Z\) and \(X\), given by \(f_\theta: \mathbb{R}^n \to \mathbb{R}^n\), is deterministic and invertible such that \(X = f_\theta(Z)\) and \(Z  = f_\theta^{-1}(X)\)<sup id="fnref:nf" role="doc-noteref"><a href="#fn:nf" class="footnote">1</a></sup>.</p>
 
 <p><img src="flow-graphical.png" alt="" /></p>
 
-<p>Using change of variables, the marginal likelihood <script type="math/tex">p(x)</script> is given by</p>
+<p>Using change of variables, the marginal likelihood \(p(x)\) is given by</p>
 
 <div class="mathblock"><script type="math/tex; mode=display">
 
@@ -166,7 +165,7 @@ p_X(\mathbb{x}; \theta) = p_Z(f_\theta^{-1}(\mathbb{x})) \left\vert \text{det}\l
 \mathbf{x} = f_\theta(z) = \mathbf{z} + \mathbf{u} h(\mathbf{w}^\top \mathbf{z} + b)
 </script></div>
 
-<p>where <script type="math/tex">\mathbf{u}, \mathbf{w}, b</script> are parameters.</p>
+<p>where \(\mathbf{u}, \mathbf{w}, b\) are parameters.</p>
 
 <p>The absolute value of the determinant of the Jacobian is given by</p>
 
@@ -174,31 +173,31 @@ p_X(\mathbb{x}; \theta) = p_Z(f_\theta^{-1}(\mathbb{x})) \left\vert \text{det}\l
 \left\vert \text{det}\left(\frac{\partial f(\mathbb{z})}{\partial \mathbb{z}}\right) \right\vert = \left\vert 1 + h'(\mathbf{w}^\top \mathbf{z} + b) \mathbf{u}^\top \mathbf{w} \right\vert
 </script></div>
 
-<p>However,  <script type="math/tex">\mathbf{u}, \mathbf{w}, b, h(\cdot)</script> need to be restricted in order to be invertible. For example, <script type="math/tex">h = \tanh</script> and <script type="math/tex">h'(\mathbf{w}^\top \mathbf{z} + b) \mathbf{u}^\top \mathbf{w} \geq -1</script>. Note that while <script type="math/tex">f_\theta(\mathbf{z})</script> is invertible, computing <script type="math/tex">f_\theta^{-1}(\mathbf{z})</script> could be difficult analytically.  The following models address this problem, where both <script type="math/tex">f_\theta</script> and <script type="math/tex">f_\theta^{-1}</script> have simple analytical forms.</p>
+<p>However,  \(\mathbf{u}, \mathbf{w}, b, h(\cdot)\) need to be restricted in order to be invertible. For example, \(h = \tanh\) and \(h'(\mathbf{w}^\top \mathbf{z} + b) \mathbf{u}^\top \mathbf{w} \geq -1\). Note that while \(f_\theta(\mathbf{z})\) is invertible, computing \(f_\theta^{-1}(\mathbf{z})\) could be difficult analytically.  The following models address this problem, where both \(f_\theta\) and \(f_\theta^{-1}\) have simple analytical forms.</p>
 
-<p>The Nonlinear Independent Components Estimation (NICE) model and Real Non-Volume Preserving (RealNVP) model composes two kinds of invertible transformations: additive coupling layers and rescaling layers. The coupling layer in NICE partitions a variable <script type="math/tex">\mathbf{z}</script> into two disjoints subsets, say <script type="math/tex">\mathbf{z}_1</script> and <script type="math/tex">\mathbf{z}_2</script>. Then it applies the following transformation:</p>
+<p>The Nonlinear Independent Components Estimation (NICE) model and Real Non-Volume Preserving (RealNVP) model composes two kinds of invertible transformations: additive coupling layers and rescaling layers. The coupling layer in NICE partitions a variable \(\mathbf{z}\) into two disjoint subsets, say \(\mathbf{z}_1\) and \(\mathbf{z}_2\). Then it applies the following transformation:</p>
 
-<p>Forward mapping <script type="math/tex">\mathbf{z} \to \mathbf{x}</script></p>
+<p>Forward mapping \(\mathbf{z} \to \mathbf{x}\)</p>
 <ol>
   <li>
-    <p><script type="math/tex">\mathbf{x}_1 = \mathbf{z}_1</script>, which is an identity mapping.</p>
+    <p>\(\mathbf{x}_1 = \mathbf{z}_1\), which is an identity mapping.</p>
   </li>
   <li>
-    <p><script type="math/tex">\mathbf{x}_2 = \mathbf{z}_2 + m_\theta(\mathbf{z_1})</script>, where <script type="math/tex">m_\theta</script> is a neural network.</p>
+    <p>\(\mathbf{x}_2 = \mathbf{z}_2 + m_\theta(\mathbf{z_1})\), where \(m_\theta\) is a neural network.</p>
   </li>
 </ol>
 
-<p>Inverse mapping <script type="math/tex">\mathbf{x} \to \mathbf{z}</script>:</p>
+<p>Inverse mapping \(\mathbf{x} \to \mathbf{z}\):</p>
 <ol>
   <li>
-    <p><script type="math/tex">\mathbf{z}_1 = \mathbf{x}_1</script>, which is an identity mapping.</p>
+    <p>\(\mathbf{z}_1 = \mathbf{x}_1\), which is an identity mapping.</p>
   </li>
   <li>
-    <p><script type="math/tex">\mathbf{z}_2 = \mathbf{x}_2 - m_\theta(\mathbf{x_1})</script>, which is the inverse of the forward transformation.</p>
+    <p>\(\mathbf{z}_2 = \mathbf{x}_2 - m_\theta(\mathbf{x_1})\), which is the inverse of the forward transformation.</p>
   </li>
 </ol>
 
-<p>Therefore, the Jacobian of the forward mapping is lower trangular, whose determinant is simply the product of the elements on the diagonal, which is 1. Therefore, this defines a volume preserving transformation. RealNVP adds scaling factors to the transformation:</p>
+<p>Therefore, the Jacobian of the forward mapping is lower triangular, whose determinant is simply the product of the elements on the diagonal, which is 1. Therefore, this defines a volume preserving transformation. RealNVP adds scaling factors to the transformation:</p>
 
 <div class="mathblock"><script type="math/tex; mode=display">
 
@@ -206,15 +205,15 @@ p_X(\mathbb{x}; \theta) = p_Z(f_\theta^{-1}(\mathbb{x})) \left\vert \text{det}\l
 
 </script></div>
 
-<p>where <script type="math/tex">\odot</script> denotes elementwise product. This results in a non-volume preserving transformation.</p>
+<p>where \(\odot\) denotes elementwise product. This results in a non-volume preserving transformation.</p>
 
-<p>Some autoregressive models can also be interpreted as flow models. For a Gaussian autoregressive model, one receive some Gaussian noise for each dimension of <script type="math/tex">\mathbb{x}</script>, which can be treated as the latent variables <script type="math/tex">\mathbf{z}</script>. Such transformations are also invertible, meaning that given <script type="math/tex">\mathbf{x}</script> and the model parameters, we can obtain <script type="math/tex">\mathbf{z}</script> exactly.</p>
+<p>Some autoregressive models can also be interpreted as flow models. For a Gaussian autoregressive model, one receive some Gaussian noise for each dimension of \(\mathbb{x}\), which can be treated as the latent variables \(\mathbf{z}\). Such transformations are also invertible, meaning that given \(\mathbf{x}\) and the model parameters, we can obtain \(\mathbf{z}\) exactly.</p>
 
-<p>Masked Autoregressive Flow (MAF) uses this interpretation, where the forward mapping is an autoregressive model. However, sampling is sequential and slow, in <script type="math/tex">O(n)</script> time where <script type="math/tex">n</script> is the dimension of the samples.</p>
+<p>Masked Autoregressive Flow (MAF) uses this interpretation, where the forward mapping is an autoregressive model. However, sampling is sequential and slow, in \(O(n)\) time where \(n\) is the dimension of the samples.</p>
 
 <p><img src="maf.png" alt="" /></p>
 
-<p>To address the sampling problem, the Inverse Autoregressive Flow (IAF) simply inverts the generating process. In this case, generating <script type="math/tex">\mathbf{x}</script> from the noise can be parallelized, but computing the likelihood of new data points is slow. However, for generated points the likelihood can be computed efficiently (since the noise are already obtained).</p>
+<p>To address the sampling problem, the Inverse Autoregressive Flow (IAF) simply inverts the generating process. In this case, generating \(\mathbf{x}\) from the noise can be parallelized, but computing the likelihood of new data points is slow. However, for generated points the likelihood can be computed efficiently (since the noise are already obtained).</p>
 
 <p><img src="iaf.png" alt="" /></p>
 
@@ -222,10 +221,10 @@ p_X(\mathbb{x}; \theta) = p_Z(f_\theta^{-1}(\mathbb{x})) \left\vert \text{det}\l
 
 <h1 id="footnotes">Footnotes</h1>
 
-<div class="footnotes">
+<div class="footnotes" role="doc-endnotes">
   <ol>
-    <li id="fn:nf">
-      <p>Recall the conditions for change of variable formula. <a href="#fnref:nf" class="reversefootnote">&#8617;</a></p>
+    <li id="fn:nf" role="doc-endnote">
+      <p>Recall the conditions for change of variable formula. <a href="#fnref:nf" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
     </li>
   </ol>
 </div>
@@ -261,8 +260,8 @@ p_X(\mathbb{x}; \theta) = p_Z(f_\theta^{-1}(\mathbb{x})) \left\vert \text{det}\l
   <!--      -->
   <!-- </ul> -->
 <div class="credits">
-<!-- <span>&#38;copy; 2018 <!&#45;&#45; &#38;#38;nbsp;&#38;#38;nbsp;ADITYA GROVER &#45;&#45;></span></br> <br> -->
-<span>Site created with <a href="//jekyllrb.com">Jekyll</a> using the <a href="//github.com/clayh53/tufte-jekyll">Tufte theme</a>. &copy; 2018</span> 
+<!-- <span>&#38;copy; 2021 <!&#45;&#45; &#38;#38;nbsp;&#38;#38;nbsp;ADITYA GROVER &#45;&#45;></span></br> <br> -->
+<span>Site created with <a href="//jekyllrb.com">Jekyll</a> using the <a href="//github.com/clayh53/tufte-jekyll">Tufte theme</a>. &copy; 2021</span> 
 </div>  
 </footer>
 

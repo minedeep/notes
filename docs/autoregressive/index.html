@@ -32,8 +32,8 @@
 
   </script>
 
-  <link rel="canonical" href="http://localhost:4000/notes/autoregressive/">
-  <link rel="alternate" type="application/rss+xml" title="Deep Generative Models" href="http://localhost:4000/notes/feed.xml" />
+  <link rel="canonical" href="/notes/autoregressive/">
+  <link rel="alternate" type="application/rss+xml" title="Deep Generative Models" href="/notes/feed.xml" />
 </head>
 
   <body>
@@ -77,19 +77,18 @@
 </script>
 
 
-<p>We begin our study into generative modeling with autoregressive models. As before, we assume we are given access to a dataset <script type="math/tex">\mathcal{D}</script> of <script type="math/tex">n</script>-dimensional datapoints <script type="math/tex">\mathbf{x}</script>. For simplicity, we assume the datapoints are binary, i.e., <script type="math/tex">\mathbf{x} \in \{0,1\}^n</script>.</p>
+<p>We begin our study into generative modeling with autoregressive models. As before, we assume we are given access to a dataset \(\mathcal{D}\) of \(n\)-dimensional datapoints \(\mathbf{x}\). For simplicity, we assume the datapoints are binary, i.e., \(\mathbf{x} \in \{0,1\}^n\).</p>
 
 <h1 id="representation">Representation</h1>
 
-<p>By the chain rule of probability, we can factorize the joint distribution over the <script type="math/tex">n</script>-dimensions as</p>
+<p>By the chain rule of probability, we can factorize the joint distribution over the \(n\)-dimensions as</p>
 
 <div class="mathblock"><script type="math/tex; mode=display">
 p(\mathbf{x}) = \prod\limits_{i=1}^{n}p(x_i \vert x_1, x_2, \ldots, x_{i-1}) = 
 \prod\limits_{i=1}^{n} p(x_i \vert \mathbf{x}_{< i } )
 </script></div>
 
-<p>where <script type="math/tex">% <![CDATA[
-\mathbf{x}_{< i}=[x_1, x_2, \ldots, x_{i-1}] %]]></script> denotes the vector of random variables with index less than <script type="math/tex">i</script>.</p>
+<p>where \(\mathbf{x}_{&lt; i}=[x_1, x_2, \ldots, x_{i-1}]\) denotes the vector of random variables with index less than \(i\).</p>
 
 <p>The chain rule factorization can be expressed graphically as a Bayesian network.</p>
 
@@ -101,24 +100,21 @@ Graphical model for an autoregressive Bayesian network with no conditional indep
 </figure>
 
 <p>Such a Bayesian network that makes no conditional independence assumptions is said to obey the <em>autoregressive</em> property.
-The term <em>autoregressive</em> originates from the literature on time-series models where observations from the previous time-steps are used to predict the value at the current time step. Here, we fix an ordering of the variables <script type="math/tex">x_1, x_2, \ldots, x_n</script> and the distribution for the <script type="math/tex">i</script>-th random variable depends on the values of all the preceeding random variables in the chosen ordering <script type="math/tex">x_1, x_2, \ldots, x_{i-1}</script>.</p>
+The term <em>autoregressive</em> originates from the literature on time-series models where observations from the previous time-steps are used to predict the value at the current time step. Here, we fix an ordering of the variables \(x_1, x_2, \ldots, x_n\) and the distribution for the \(i\)-th random variable depends on the values of all the preceding random variables in the chosen ordering \(x_1, x_2, \ldots, x_{i-1}\).</p>
 
-<p>If we allow for every conditional <script type="math/tex">% <![CDATA[
-p(x_i \vert \mathbf{x}_{< i}) %]]></script> to be specified in a tabular form, then such a representation is fully general and can represent any possible distribution over <script type="math/tex">n</script> random variables. However, the space complexity for such a representation grows exponentially with <script type="math/tex">n</script>.</p>
+<p>If we allow for every conditional \(p(x_i \vert \mathbf{x}_{&lt; i})\) to be specified in a tabular form, then such a representation is fully general and can represent any possible distribution over \(n\) random variables. However, the space complexity for such a representation grows exponentially with \(n\).</p>
 
-<p>To see why, let us consider the conditional for the last dimension, given by <script type="math/tex">% <![CDATA[
-p(x_n \vert \mathbf{x}_{< n}) %]]></script>. In order to fully specify this conditional, we need to specify a probability for <script type="math/tex">2^{n-1}</script> configurations of the variables <script type="math/tex">x_1, x_2, \ldots, x_{n-1}</script>. Since the probabilities should sum to 1, the total number of parameters for specifying this conditional is given by <script type="math/tex">2^{n-1} -1</script>. Hence, a tabular representation for the conditionals is impractical for learning the joint distribution factorized via chain rule.</p>
+<p>To see why, let us consider the conditional for the last dimension, given by \(p(x_n \vert \mathbf{x}_{&lt; n})\). In order to fully specify this conditional, we need to specify a probability distribution for each of the \(2^{n-1}\) configurations of the variables \(x_1, x_2, \ldots, x_{n-1}\). For any one of the \(2^{n-1}\) possible configurations of the variables, the probabilities should sum to one. Therefore, we need only one parameter for each configuration, so the total number of parameters for specifying this conditional is given by \(2^{n-1}\). Hence, a tabular representation for the conditionals is impractical for learning the joint distribution factorized via chain rule.</p>
 
-<p>In an <em>autoregressive generative model</em>, the conditionals are specified as parameterized functions with a fixed number of parameters. That is, we assume the conditional distributions <script type="math/tex">% <![CDATA[
-p(x_i \vert \mathbf{x}_{< i}) %]]></script> to correspond to a Bernoulli random variable and learn a function that maps the preceeding random variables <script type="math/tex">x_1, x_2, \ldots, x_{i-1}</script> to the
+<p>In an <em>autoregressive generative model</em>, the conditionals are specified as parameterized functions with a fixed number of parameters. That is, we assume the conditional distributions \(p(x_i \vert \mathbf{x}_{&lt; i})\) to correspond to a Bernoulli random variable and learn a function that maps the preceding random variables \(x_1, x_2, \ldots, x_{i-1}\) to the
 mean of this distribution. Hence, we have</p>
 <div class="mathblock"><script type="math/tex; mode=display">
 p_{\theta_i}(x_i \vert \mathbf{x}_{< i}) = \mathrm{Bern}(f_i(x_1, x_2, \ldots, x_{i-1}))
 </script></div>
-<p>where <script type="math/tex">\theta_i</script> denotes the set of parameters used to specify the mean
-function <script type="math/tex">f_i: \{0,1\}^{i-1}\rightarrow [0,1]</script>.</p>
+<p>where \(\theta_i\) denotes the set of parameters used to specify the mean
+function \(f_i: \{0,1\}^{i-1}\rightarrow [0,1]\).</p>
 
-<p>The number of parameters of an autoregressive generative model are given by <script type="math/tex">\sum_{i=1}^n \vert \theta_i \vert</script>. As we shall see in the examples below, the number of parameters are much fewer than the tabular setting considered previously. Unlike the tabular setting however, an autoregressive generative model cannot represent all possible distributions. Its expressiveness is limited by the fact that we are limiting the conditional distributions to correspond to a Bernoulli random variable with the mean specified via a restricted class of parameterized functions.</p>
+<p>The number of parameters of an autoregressive generative model are given by \(\sum_{i=1}^n \vert \theta_i \vert\). As we shall see in the examples below, the number of parameters are much fewer than the tabular setting considered previously. Unlike the tabular setting however, an autoregressive generative model cannot represent all possible distributions. Its expressiveness is limited by the fact that we are limiting the conditional distributions to correspond to a Bernoulli random variable with the mean specified via a restricted class of parameterized functions.</p>
 
 <figure>
 <img src="fvsbn.png" alt="drawing" width="200" class="center" />
@@ -132,17 +128,17 @@ function <script type="math/tex">f_i: \{0,1\}^{i-1}\rightarrow [0,1]</script>.</
 f_i(x_1, x_2, \ldots, x_{i-1}) =\sigma(\alpha^{(i)}_0 + \alpha^{(i)}_1 x_1 + \ldots + \alpha^{(i)}_{i-1} x_{i-1})
 </script></div>
 
-<p>where <script type="math/tex">\sigma</script> denotes the sigmoid function and <script type="math/tex">\theta_i=\{\alpha^{(i)}_0,\alpha^{(i)}_1, \ldots, \alpha^{(i)}_{i-1}\}</script> denote the parameters of the mean function. The conditional for variable <script type="math/tex">i</script> requires <script type="math/tex">i</script> parameters, and hence the total number of parameters in the model is given by <script type="math/tex">\sum_{i=1}^ni= O(n^2)</script>. Note that the number of parameters are much fewer than the exponential complexity of the tabular case.</p>
+<p>where \(\sigma\) denotes the sigmoid function and \(\theta_i=\{\alpha^{(i)}_0,\alpha^{(i)}_1, \ldots, \alpha^{(i)}_{i-1}\}\) denote the parameters of the mean function. The conditional for variable \(i\) requires \(i\) parameters, and hence the total number of parameters in the model is given by \(\sum_{i=1}^ni= O(n^2)\). Note that the number of parameters are much fewer than the exponential complexity of the tabular case.</p>
 
-<p>A natural way to increase the expressiveness of an autoregressive generative model is to use more flexible parameterizations for the mean function e.g., multi-layer perceptrons (MLP). For example, consider the case of a neural network with 1 hidden layer. The mean function for variable <script type="math/tex">i</script> can be expressed as</p>
+<p>A natural way to increase the expressiveness of an autoregressive generative model is to use more flexible parameterizations for the mean function e.g., multi-layer perceptrons (MLP). For example, consider the case of a neural network with 1 hidden layer. The mean function for variable \(i\) can be expressed as</p>
 
 <div class="mathblock"><script type="math/tex; mode=display">
 \mathbf{h}_i = \sigma(A_i \mathbf{x_{< i}} + \mathbf{c}_i)\\
 f_i(x_1, x_2, \ldots, x_{i-1}) =\sigma(\boldsymbol{\alpha}^{(i)}\mathbf{h}_i +b_i )
 </script></div>
 
-<p>where <script type="math/tex">\mathbf{h}_i \in \mathbb{R}^d</script> denotes the hidden layer activations for the MLP and <script type="math/tex">\theta_i = \{A_i \in \mathbb{R}^{d\times (i-1)},  \mathbf{c}_i \in \mathbb{R}^d, \boldsymbol{\alpha}^{(i)}\in \mathbb{R}^d, b_i \in \mathbb{R}\}</script>
-are the set of parameters for the mean function <script type="math/tex">\mu_i(\cdot)</script>. The total number of parameters in this model is dominated by the matrices <script type="math/tex">A_i</script> and given by <script type="math/tex">O(n^2 d)</script>.</p>
+<p>where \(\mathbf{h}_i \in \mathbb{R}^d\) denotes the hidden layer activations for the MLP and \(\theta_i = \{A_i \in \mathbb{R}^{d\times (i-1)},  \mathbf{c}_i \in \mathbb{R}^d, \boldsymbol{\alpha}^{(i)}\in \mathbb{R}^d, b_i \in \mathbb{R}\}\)
+are the set of parameters for the mean function \(\mu_i(\cdot)\). The total number of parameters in this model is dominated by the matrices \(A_i\) and given by \(O(n^2 d)\).</p>
 
 <figure>
 <img src="nade.png" alt="drawing" width="200" class="center" />
@@ -157,26 +153,26 @@ are the set of parameters for the mean function <script type="math/tex">\mu_i(\c
 \mathbf{h}_i = \sigma(W_{., < i} \mathbf{x_{< i}} + \mathbf{c})\\
 f_i(x_1, x_2, \ldots, x_{i-1}) =\sigma(\boldsymbol{\alpha}^{(i)}\mathbf{h}_i +b_i )
 </script></div>
-<p>where <script type="math/tex">\theta=\{W\in \mathbb{R}^{d\times n}, \mathbf{c} \in \mathbb{R}^d, \{\boldsymbol{\alpha}^{(i)}\in \mathbb{R}^d\}^n_{i=1}, \{b_i \in \mathbb{R}\}^n_{i=1}\}</script>is
-the full set of parameters for the mean functions <script type="math/tex">f_1(\cdot), f_2(\cdot), \ldots, f_n(\cdot)</script>. The weight matrix <script type="math/tex">W</script> and the bias vector <script type="math/tex">\mathbf{c}</script> are shared across the conditionals. Sharing parameters offers two benefits:</p>
+<p>where \(\theta=\{W\in \mathbb{R}^{d\times n}, \mathbf{c} \in \mathbb{R}^d, \{\boldsymbol{\alpha}^{(i)}\in \mathbb{R}^d\}^n_{i=1}, \{b_i \in \mathbb{R}\}^n_{i=1}\}\)is
+the full set of parameters for the mean functions \(f_1(\cdot), f_2(\cdot), \ldots, f_n(\cdot)\). The weight matrix \(W\) and the bias vector \(\mathbf{c}\) are shared across the conditionals. Sharing parameters offers two benefits:</p>
 
 <ol>
   <li>
-    <p>The total number of parameters gets reduced from <script type="math/tex">O(n^2 d)</script> to <script type="math/tex">O(nd)</script> [readers are encouraged to check!].</p>
+    <p>The total number of parameters gets reduced from \(O(n^2 d)\) to \(O(nd)\) [readers are encouraged to check!].</p>
   </li>
   <li>
-    <p>The hidden unit activations can be evaluated in <script type="math/tex">O(nd)</script> time via the following recursive strategy:</p>
+    <p>The hidden unit activations can be evaluated in \(O(nd)\) time via the following recursive strategy:</p>
     <div class="mathblock"><script type="math/tex; mode=display">
 \mathbf{h}_i = \sigma(\mathbf{a}_i)\\
 \mathbf{a}_{i+1} = \mathbf{a}_{i} + W[., i]x_i
 </script></div>
-    <p>with the base case given by <script type="math/tex">\mathbf{a}_1=\mathbf{c}</script>.</p>
+    <p>with the base case given by \(\mathbf{a}_1=\mathbf{c}\).</p>
   </li>
 </ol>
 
 <h3 id="extensions-to-nade">Extensions to NADE</h3>
 
-<p>The <a href="https://arxiv.org/abs/1306.0186">RNADE</a> algorithm extends NADE to learn generative models over real-valued data. Here, the conditionals are modeled via a continuous distribution such as a equi-weighted mixture of <script type="math/tex">K</script> Gaussians. Instead of learning a mean function, we know learn the means <script type="math/tex">\mu_{i,1}, \mu_{i,2},\ldots, \mu_{i,K}</script> and variances <script type="math/tex">\Sigma_{i,1}, \Sigma_{i,2},\ldots, \Sigma_{i,K}</script> of the <script type="math/tex">K</script> Gaussians for every conditional. For statistical and computational efficiency, a single function <script type="math/tex">g_i: \mathbb{R}^{i-1}\rightarrow\mathbb{R}^{2K}</script> outputs all the means and variances of the <script type="math/tex">K</script> Gaussians for the <script type="math/tex">i</script>-th conditional distribution.</p>
+<p>The <a href="https://arxiv.org/abs/1306.0186">RNADE</a> algorithm extends NADE to learn generative models over real-valued data. Here, the conditionals are modeled via a continuous distribution such as a equi-weighted mixture of \(K\) Gaussians. Instead of learning a mean function, we now learn the means \(\mu_{i,1}, \mu_{i,2},\ldots, \mu_{i,K}\) and variances \(\Sigma_{i,1}, \Sigma_{i,2},\ldots, \Sigma_{i,K}\) of the \(K\) Gaussians for every conditional. For statistical and computational efficiency, a single function \(g_i: \mathbb{R}^{i-1}\rightarrow\mathbb{R}^{2K}\) outputs all the means and variances of the \(K\) Gaussians for the \(i\)-th conditional distribution.</p>
 
 <p>Notice that NADE requires specifying a single, fixed ordering of the variables. The choice of ordering can lead to different models. The <a href="https://arxiv.org/abs/1310.1757">EoNADE</a> algorithm allows training an ensemble of NADE models with different orderings.</p>
 
@@ -189,33 +185,32 @@ the full set of parameters for the mean functions <script type="math/tex">f_1(\c
 (p_{\mathrm{data}}, p_{\theta}) = \mathbb{E}_{\mathbf{x} \sim p_{\mathrm{data}} }\left[\log p_{\mathrm{data}}(\mathbf{x}) - \log p_{\theta}(\mathbf{x})\right]
 </script></div>
 
-<p>Before moving any further, we make two comments about the KL divergence. First, we note that the KL divergence between any two distributions is asymmetric. As we navigate through this chapter, the reader is encouraged to think what could go wrong if we decided to optimize the reverse KL divergence instead. Secondly, the KL divergences heavily penalizes any model distribution <script type="math/tex">p_\theta</script> which assigns low probability to a datapoint that is likely to be sampled under <script type="math/tex">p_{\mathrm{data}}</script>. In the extreme case, if the density <script type="math/tex">p_\theta(\mathbf{x})</script> evaluates to zero for a datapoint sampled from <script type="math/tex">p_{\mathrm{data}}</script>, the objective evaluates to <script type="math/tex">+\infty</script>.</p>
+<p>Before moving any further, we make two comments about the KL divergence. First, we note that the KL divergence between any two distributions is asymmetric. As we navigate through this chapter, the reader is encouraged to think what could go wrong if we decided to optimize the reverse KL divergence instead. Secondly, the KL divergences heavily penalizes any model distribution \(p_\theta\) which assigns low probability to a datapoint that is likely to be sampled under \(p_{\mathrm{data}}\). In the extreme case, if the density \(p_\theta(\mathbf{x})\) evaluates to zero for a datapoint sampled from \(p_{\mathrm{data}}\), the objective evaluates to \(+\infty\).</p>
 
-<p>Since <script type="math/tex">p_{\mathrm{data}}</script> does not depend on <script type="math/tex">\theta</script>, we can equivalently recover the optimal parameters via maximizing likelihood estimation.</p>
+<p>Since \(p_{\mathrm{data}}\) does not depend on \(\theta\), we can equivalently recover the optimal parameters via maximizing likelihood estimation.</p>
 
 <div class="mathblock"><script type="math/tex; mode=display">
 \max_{\theta\in \mathcal{M}}\mathbb{E}_{\mathbf{x} \sim p_{\mathrm{data}} }\left[\log p_{\theta}(\mathbf{x})\right].
 </script></div>
 
-<p>Here, <script type="math/tex">\log p_{\theta}(\mathbf{x})</script> is referred to as the log-likelihood of the datapoint <script type="math/tex">\mathbf{x}</script> with respect to the model distribution <script type="math/tex">p_\theta</script>.</p>
+<p>Here, \(\log p_{\theta}(\mathbf{x})\) is referred to as the log-likelihood of the datapoint \(\mathbf{x}\) with respect to the model distribution \(p_\theta\).</p>
 
-<p>To approximate the expectation over the unknown <script type="math/tex">p_{\mathrm{data}}</script>, we make an assumption: points in the dataset <script type="math/tex">\mathcal{D}</script> are sampled i.i.d. from <script type="math/tex">p_{\mathrm{data}}</script>. This allows us to obtain an unbiased Monte Carlo estimate of the objective as</p>
+<p>To approximate the expectation over the unknown \(p_{\mathrm{data}}\), we make an assumption: points in the dataset \(\mathcal{D}\) are sampled i.i.d. from \(p_{\mathrm{data}}\). This allows us to obtain an unbiased Monte Carlo estimate of the objective as</p>
 
 <div class="mathblock"><script type="math/tex; mode=display">
 \max_{\theta\in \mathcal{M}}\frac{1}{\vert D \vert} \sum_{\mathbf{x} \in\mathcal{D} }\log p_{\theta}(\mathbf{x}) = \mathcal{L}(\theta \vert \mathcal{D}).
  </script></div>
 
-<p>The maximum likelihood estimation (MLE) objective has an intuitive interpretation: pick the model parameters <script type="math/tex">\theta \in \mathcal{M}</script> that maximize the log-probability of the observed datapoints in <script type="math/tex">\mathcal{D}</script>.</p>
+<p>The maximum likelihood estimation (MLE) objective has an intuitive interpretation: pick the model parameters \(\theta \in \mathcal{M}\) that maximize the log-probability of the observed datapoints in \(\mathcal{D}\).</p>
 
-<p>In practice, we optimize the MLE objective using mini-batch gradient ascent. The algorithm operates in iterations. At every iteration <script type="math/tex">t</script>, we sample a mini-batch <script type="math/tex">\mathcal{B}_t</script> of datapoints sampled randomly from the dataset (<script type="math/tex">% <![CDATA[
-\vert \mathcal{B}_t\vert < \vert \mathcal{D} \vert %]]></script>) and compute gradients of the objective evaluated for the mini-batch. These parameters at iteration <script type="math/tex">t+1</script> are then given via the following update rule</p>
+<p>In practice, we optimize the MLE objective using mini-batch gradient ascent. The algorithm operates in iterations. At every iteration \(t\), we sample a mini-batch \(\mathcal{B}_t\) of datapoints sampled randomly from the dataset (\(\vert \mathcal{B}_t\vert &lt; \vert \mathcal{D} \vert\)) and compute gradients of the objective evaluated for the mini-batch. These parameters at iteration \(t+1\) are then given via the following update rule</p>
 <div class="mathblock"><script type="math/tex; mode=display">
 \theta^{(t+1)} = \theta^{(t)} + r_t \nabla_\theta\mathcal{L}(\theta^{(t)} \vert \mathcal{B}_t)
 </script></div>
 
-<p>where <script type="math/tex">\theta^{(t+1)}</script> and <script type="math/tex">\theta^{(t)}</script> are the parameters at iterations <script type="math/tex">t+1</script> and <script type="math/tex">t</script> respectively, and <script type="math/tex">r_t</script> is the learning rate at iteration <script type="math/tex">t</script>. Typically, we only specify the initial learning rate <script type="math/tex">r_1</script> and update the rate based on a schedule. <a href="http://cs231n.github.io/optimization-1/">Variants</a> of stochastic gradient ascent, such as RMS prop and Adam, employ modified update rules that work slightly better in practice.</p>
+<p>where \(\theta^{(t+1)}\) and \(\theta^{(t)}\) are the parameters at iterations \(t+1\) and \(t\) respectively, and \(r_t\) is the learning rate at iteration \(t\). Typically, we only specify the initial learning rate \(r_1\) and update the rate based on a schedule. <a href="http://cs231n.github.io/optimization-1/">Variants</a> of stochastic gradient ascent, such as RMS prop and Adam, employ modified update rules that work slightly better in practice.</p>
 
-<p>From a practical standpoint, we must think about how to choose hyperaparameters (such as the initial learning rate) and a stopping criteria for the gradient descent. For both these questions, we follow the standard practice in machine learning of monitoring the objective on a validation dataset. Consequently, we choose the hyperparameters with the best performance on the validation dataset and stop updating the parameters when the validation log-likelihoods cease to improve<sup id="fnref:1"><a href="#fn:1" class="footnote">1</a></sup>.</p>
+<p>From a practical standpoint, we must think about how to choose hyperparameters (such as the initial learning rate) and a stopping criteria for the gradient descent. For both these questions, we follow the standard practice in machine learning of monitoring the objective on a validation dataset. Consequently, we choose the hyperparameters with the best performance on the validation dataset and stop updating the parameters when the validation log-likelihoods cease to improve<sup id="fnref:1" role="doc-noteref"><a href="#fn:1" class="footnote">1</a></sup>.</p>
 
 <p>Now that we have a well-defined objective and optimization procedure, the only remaining task is to evaluate the objective in the context of an autoregressive generative model. To this end, we substitute the factorized joint distribution of an autoregressive model in the MLE objective to get</p>
 
@@ -223,14 +218,12 @@ the full set of parameters for the mean functions <script type="math/tex">f_1(\c
 \max_{\theta \in \mathcal{M}}\frac{1}{\vert D \vert} \sum_{\mathbf{x} \in\mathcal{D} }\sum_{i=1}^n\log p_{\theta_i}(x_i \vert \mathbf{x}_{< i})
 </script></div>
 
-<p>where <script type="math/tex">\theta = \{\theta_1, \theta_2, \ldots, \theta_n\}</script> now denotes the
+<p>where \(\theta = \{\theta_1, \theta_2, \ldots, \theta_n\}\) now denotes the
 collective set of parameters for the conditionals.</p>
 
-<p>Inference in an autoregressive model is straightforward. For density estimation of an arbitrary point <script type="math/tex">\mathbf{x}</script>, we simply evaluate the log-conditionals <script type="math/tex">% <![CDATA[
-\log p_{\theta_i}(x_i \vert \mathbf{x}_{< i}) %]]></script> for each <script type="math/tex">i</script> and add these up to obtain the log-likelihood assigned by the model to <script type="math/tex">\mathbf{x}</script>. Since we know conditioning vector <script type="math/tex">\mathbf{x}</script>, each of the conditionals can be evaluated in parallel. Hence, density estimation is efficient on modern hardware.</p>
+<p>Inference in an autoregressive model is straightforward. For density estimation of an arbitrary point \(\mathbf{x}\), we simply evaluate the log-conditionals \(\log p_{\theta_i}(x_i \vert \mathbf{x}_{&lt; i})\) for each \(i\) and add these up to obtain the log-likelihood assigned by the model to \(\mathbf{x}\). Since we know conditioning vector \(\mathbf{x}\), each of the conditionals can be evaluated in parallel. Hence, density estimation is efficient on modern hardware.</p>
 
-<p>Sampling from an autoregressive model is a sequential procedure. Here, we first sample <script type="math/tex">x_1</script>, then we sample <script type="math/tex">x_2</script> conditioned on the sampled <script type="math/tex">x_1</script>, followed by <script type="math/tex">x_3</script> conditioned on both <script type="math/tex">x_1</script> and <script type="math/tex">x_2</script> and so on until we sample <script type="math/tex">x_n</script> conditioned on the previously sampled <script type="math/tex">% <![CDATA[
-\mathbf{x}_{< n} %]]></script>. For applications requiring real-time generation of high-dimensional data such as audio synthesis, the sequential sampling can be an expensive process. Later in this course, we will discuss how parallel Wavenet, an autoregressive model sidesteps this expensive sampling process.</p>
+<p>Sampling from an autoregressive model is a sequential procedure. Here, we first sample \(x_1\), then we sample \(x_2\) conditioned on the sampled \(x_1\), followed by \(x_3\) conditioned on both \(x_1\) and \(x_2\) and so on until we sample \(x_n\) conditioned on the previously sampled \(\mathbf{x}_{&lt; n}\). For applications requiring real-time generation of high-dimensional data such as audio synthesis, the sequential sampling can be an expensive process. Later in this course, we will discuss how parallel WaveNet, an autoregressive model sidesteps this expensive sampling process.</p>
 
 <!-- TODO: add NADE samples figure -->
 
@@ -244,10 +237,10 @@ Coming soon: MADE, Char-RNN, Pixel-CNN, Wavenet -->
 
 <h1 id="footnotes">Footnotes</h1>
 
-<div class="footnotes">
+<div class="footnotes" role="doc-endnotes">
   <ol>
-    <li id="fn:1">
-      <p>Given the non-convex nature of such problems, the optimization procedure can get stuck in local optima. Hence, early stopping will generally not be optimal but is a very practical strategy. <a href="#fnref:1" class="reversefootnote">&#8617;</a></p>
+    <li id="fn:1" role="doc-endnote">
+      <p>Given the non-convex nature of such problems, the optimization procedure can get stuck in local optima. Hence, early stopping will generally not be optimal but is a very practical strategy. <a href="#fnref:1" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
     </li>
   </ol>
 </div>
@@ -283,8 +276,8 @@ Coming soon: MADE, Char-RNN, Pixel-CNN, Wavenet -->
   <!--      -->
   <!-- </ul> -->
 <div class="credits">
-<!-- <span>&#38;copy; 2018 <!&#45;&#45; &#38;#38;nbsp;&#38;#38;nbsp;ADITYA GROVER &#45;&#45;></span></br> <br> -->
-<span>Site created with <a href="//jekyllrb.com">Jekyll</a> using the <a href="//github.com/clayh53/tufte-jekyll">Tufte theme</a>. &copy; 2018</span> 
+<!-- <span>&#38;copy; 2021 <!&#45;&#45; &#38;#38;nbsp;&#38;#38;nbsp;ADITYA GROVER &#45;&#45;></span></br> <br> -->
+<span>Site created with <a href="//jekyllrb.com">Jekyll</a> using the <a href="//github.com/clayh53/tufte-jekyll">Tufte theme</a>. &copy; 2021</span> 
 </div>  
 </footer>
 
